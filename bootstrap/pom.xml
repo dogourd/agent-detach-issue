@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.example</groupId>
+        <artifactId>agent-detach-issue</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>bootstrap</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <tmpdir>${project.basedir}/target/tmp</tmpdir>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>bootstrap/dispatcher/**/*.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>shade-classes</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <!-- dispatcher needs to be in 'java.lang' to be included in 'java.base' module on java 9+ -->
+                            <pattern>bootstrap.dispatcher</pattern>
+                            <shadedPattern>java.lang</shadedPattern>
+                        </relocation>
+                    </relocations>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>rename-classes</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target name="move-and-rename" description="Move and Rename">
+                                <!-- After relocation, we still have to move those classes to ensure they can't interfere
+                                with regular classloading. Their content will be injected as resources into the bootstrap
+                                classloader -->
+
+                                <delete dir="${tmpdir}" />
+                                <mkdir dir="${tmpdir}" />
+
+                                <unzip dest="${tmpdir}" src="${project.basedir}/target/${project.build.finalName}.jar" />
+
+                                <delete dir="${tmpdir}/bootstrap" />
+                                <mkdir dir="${tmpdir}/bootstrap" />
+
+                                <move todir="${tmpdir}/bootstrap">
+                                    <fileset dir="${tmpdir}" includes="**/*.class" />
+                                </move>
+
+                                <delete dir="${tmpdir}/java" />
+                                <delete dir="${tmpdir}/META-INF" />
+
+                                <zip basedir="${tmpdir}" destfile="${project.basedir}/target/${project.build.finalName}.jar" />
+                                <delete dir="${tmpdir}" />
+                            </target>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
