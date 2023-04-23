@@ -10,7 +10,7 @@ the class loader for the agent cannot be unloaded. There are several known scena
 3. If the `WithCustomMapping#bootstrap` API is used(`-Dagent.indy.enabled=true`) and the target method is called, i.e., the custom bootstrap method is executed, unloading cannot be completed normally.
 
 The custom bootstrap method in this example mainly involves two classes: `IndyBootstrapDispatcher` and `IndyBootstrap`. 
-They are copied from the elastic-apm-agent and simplified. This implementation uses a class loader named `IndyPluginClassLoader`, which inherits from `ByteArrayClassLoader`, to load the custom advice class.
+They are copied from the [elastic-apm-agent](https://github.com/elastic/apm-agent-java) and simplified. This implementation uses a class loader named `IndyPluginClassLoader`, which inherits from `ByteArrayClassLoader`, to load the custom advice class.
 
 ### Reproducer
 1. build the project
@@ -42,5 +42,5 @@ mv detach2.txt detach.txt
 ### Others
 1. jvisualvm(The retained size of `org.example.MyURLClassLoader` is 0)
 ![jvisualvm heap dump](img.png)
-2. the heap-dump file
+2. the heap-dump file  
 ${project.base.dir}/heapdump-by-VisualVM.hprof

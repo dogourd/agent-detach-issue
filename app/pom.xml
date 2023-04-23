@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>cn.xmirror</groupId>
+    <groupId>org.example</groupId>
     <artifactId>app</artifactId>
 
     <properties>
