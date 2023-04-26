@@ -3,7 +3,6 @@ package org.example;
 
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.loading.ClassInjector;
-import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.StreamDrainer;
 
 import java.io.IOException;
@@ -81,9 +80,7 @@ public class IndyBootstrap {
     public static void destroy() {
         try {
             indyBootstrapMethod = null;
-            Class<?> dispatcherClass = initIndyBootstrap();
-            dispatcherClass.getField("bootstrap")
-                    .set(null, null);
+            classesByPackage.clear();
         } catch (Throwable ex) {
             ex.printStackTrace();
         }
@@ -249,20 +246,24 @@ public class IndyBootstrap {
             Map<String, List<String>> requiredModuleOpens = Collections.emptyMap();
 
 
-            classFileLocator = ClassFileLocator.ForClassLoader.of(instrumentationClassLoader);
-            String pluginPackage = "org.example.advices";
-            pluginClasses.addAll(getClassNamesFromBundledPlugin(pluginPackage, instrumentationClassLoader));
+//            classFileLocator = ClassFileLocator.ForClassLoader.of(instrumentationClassLoader);
+//            String pluginPackage = "org.example.advices.indy";
+//            pluginClasses.addAll(getClassNamesFromBundledPlugin(pluginPackage, instrumentationClassLoader));
+//
+//            pluginClasses.add(LOOKUP_EXPOSER_CLASS_NAME);
+//            ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
+//                    targetClassLoader,
+//                    pluginClasses,
+//                    // we provide the instrumentation class loader as the agent class loader, but it could actually be an
+//                    // ExternalPluginClassLoader, of which parent is the agent class loader, so this works as well.
+//                    instrumentationClassLoader,
+//                    classFileLocator,
+//                    ElementMatchers.none());
+            ClassLoader pluginClassLoader = instrumentationClassLoader;
 
-            pluginClasses.add(LOOKUP_EXPOSER_CLASS_NAME);
-            ClassLoader pluginClassLoader = IndyPluginClassLoaderFactory.getOrCreatePluginClassLoader(
-                    targetClassLoader,
-                    pluginClasses,
-                    // we provide the instrumentation class loader as the agent class loader, but it could actually be an
-                    // ExternalPluginClassLoader, of which parent is the agent class loader, so this works as well.
-                    instrumentationClassLoader,
-                    classFileLocator,
-                    ElementMatchers.none());
 
+//            Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
+//            Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);
 
             Class<?> adviceInPluginCL = pluginClassLoader.loadClass(adviceClassName);
             Class<LookupExposer> lookupExposer = (Class<LookupExposer>) pluginClassLoader.loadClass(LOOKUP_EXPOSER_CLASS_NAME);

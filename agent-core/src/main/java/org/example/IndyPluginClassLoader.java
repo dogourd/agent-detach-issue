@@ -24,11 +24,14 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 
 import java.net.URL;
+import java.util.Collections;
 import java.util.Map;
 
 
 public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
 
+    private static final IndyPluginClassLoader INSTANCE = new IndyPluginClassLoader(
+            null, null, Collections.emptyMap());
     private static final ClassLoader SYSTEM_CLASS_LOADER = ClassLoader.getSystemClassLoader();
 
     public IndyPluginClassLoader(ClassLoader targetClassLoader, ClassLoader agentClassLoader, Map<String, byte[]> typeDefinitions) {
@@ -36,7 +39,7 @@ public class IndyPluginClassLoader extends ByteArrayClassLoader.ChildFirst {
         super(getParent(targetClassLoader, agentClassLoader),
                 true,
                 typeDefinitions,
-                agentClassLoader.getClass().getProtectionDomain(), // inherit protection domain from agent CL
+                agentClassLoader != null ? agentClassLoader.getClass().getProtectionDomain() : String.class.getProtectionDomain(), // inherit protection domain from agent CL
                 PersistenceHandler.LATENT,
                 PackageDefinitionStrategy.Trivial.INSTANCE);
     }

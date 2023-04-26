@@ -13,6 +13,7 @@
         <module>bootstrap</module>
         <module>agent-core</module>
         <module>app</module>
+        <module>offline</module>
     </modules>
 
     <properties>
