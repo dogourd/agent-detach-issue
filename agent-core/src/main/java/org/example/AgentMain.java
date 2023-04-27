@@ -115,7 +115,7 @@ public class AgentMain {
             }
             AsmVisitorWrapper.ForDeclaredMethods visitor = adviceBuilder
                     .to(typePool.describe(adviceClass.getName()).resolve(), locator)
-                    .on(named("service")
+                    .on(named("doGet")
                             .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
                             .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
                     );
