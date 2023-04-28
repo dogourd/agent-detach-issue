@@ -113,6 +113,69 @@ public class Premain {
         }
     }
 
+    private static void detachASM() {
+        try {
+            if (agentClass == null) {
+                return;
+            }
+            agentClass.getDeclaredMethod("detach")
+                    .invoke(null);
+            System.err.println("release agent class.");
+            agentClass = null;
+            System.err.println("close agent class loader.");
+            agentClassLoader.close();
+
+            Field field = ClassLoader.class.getDeclaredField("packages");
+            field.setAccessible(true);
+            Map packages = (Map) field.get(agentClassLoader);
+            if (packages != null) {
+                packages.clear();
+                System.err.println("Clear ClassLoader's pkg.");
+            }
+
+            Field modifersField = Field.class.getDeclaredField("modifiers");
+            modifersField.setAccessible(true);
+
+            field = ClassLoader.class.getDeclaredField("assertionLock");
+            field.setAccessible(true);
+            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+            field.set(agentClassLoader, null);
+            System.err.println("Clear ClassLoader's assertionLock");
+
+            field = ClassLoader.class.getDeclaredField("defaultDomain");
+            field.setAccessible(true);
+            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+            field.set(agentClassLoader, null);
+            System.err.println("Clear ClassLoader's defaultDomain");
+
+
+            field = SecureClassLoader.class.getDeclaredField("pdcache");
+            field.setAccessible(true);
+            Map pdcache = (Map) field.get(agentClassLoader);
+            if (pdcache != null) {
+                Field keyField = ProtectionDomain.class.getDeclaredField("key");
+                keyField.setAccessible(true);
+                for (Object pd : pdcache.values()) {
+                    System.err.println("Clear ProtectionDomain's Key");
+                    keyField.set(pd, null);
+                }
+                pdcache.clear();
+                System.err.println("Clear ClassLoader's pdCache");
+            }
+
+
+            // todo pdcache
+            // todo ClassFilLocator $ ForClassLoader  BOOT_LOADER_PROXY
+            System.err.println("release agent class loader.");
+            agentClassLoader = null;
+
+            System.gc();
+            System.runFinalization();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
     private static void attach(String args, Instrumentation instrumentation, String agentFile) throws Throwable {
         if (agentClassLoader != null) {
             return;
@@ -150,16 +213,21 @@ public class Premain {
 
         if (started.compareAndSet(false, true)) {
             new Thread(() -> {
+                boolean asm = Boolean.getBoolean("agent.asm.enabled");
                 while (true) {
                     File detach = new File(detachFile);
                     if (detach.exists()) {
-                        detach();
+                        if (asm) {
+                            detachASM();
+                        } else {
+                            detach();
+                        }
                     }
 
                     File attach = new File(detach.getParent(), "attach.txt");
                     if (attach.exists()) {
                         try {
-                            boolean asm = Boolean.getBoolean("agent.asm.enabled");
+
                             if (asm) {
                                 attachASM(args, instrumentation, agentFile);
                             } else {

@@ -12,8 +12,9 @@ import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 import net.bytebuddy.utility.dispatcher.JavaDispatcher;
-import org.example.advices.HttpServletAdvice;
-import org.example.advices.indy.HttpServletIndyAdvice;
+import org.example.advices.AppInstrumentedClassAdvice;
+import org.example.advices.indy.AppInstrumentedClassIndyAdvice;
+import org.objectweb.asm.ClassWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,6 @@ import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 
 public class AgentMain {
@@ -82,7 +82,8 @@ public class AgentMain {
                 .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
                 .with(AgentBuilder.RedefinitionStrategy.Listener.StreamWriting.toSystemError())
                 .disableClassFormatChanges()
-                .type(named("org.springframework.web.servlet.FrameworkServlet"))
+//                .type(named("org.springframework.web.servlet.FrameworkServlet"))
+                .type(named("org.example.InstrumentedClass"))
                 .transform(new FrameworkServiceTransformer())
                 .installOn(inst);
     }
@@ -109,16 +110,19 @@ public class AgentMain {
             Class<?> adviceClass;
             if (indyEnabled) {
                 adviceBuilder = adviceBuilder.bootstrap(IndyBootstrap.getIndyBootstrapMethod());
-                adviceClass = HttpServletIndyAdvice.class;
+                adviceClass = AppInstrumentedClassIndyAdvice.class;
             } else {
-                adviceClass = HttpServletAdvice.class;
+                adviceClass = AppInstrumentedClassAdvice.class;
             }
             AsmVisitorWrapper.ForDeclaredMethods visitor = adviceBuilder
                     .to(typePool.describe(adviceClass.getName()).resolve(), locator)
-                    .on(named("doGet")
-                            .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
-                            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
-                    );
+//                    .on(named("doGet")
+//                            .and(takesArgument(0, named("javax.servlet.http.HttpServletRequest")))
+//                            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
+//                    )
+                    .on(named("instrumentedMethod"))
+                    .writerFlags(ClassWriter.COMPUTE_FRAMES)
+                    ;
 
             builder = builder.visit(visitor);
             try {

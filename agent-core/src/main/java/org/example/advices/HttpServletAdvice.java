@@ -2,13 +2,10 @@ package org.example.advices;
 
 import net.bytebuddy.asm.Advice;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 public class HttpServletAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void before(HttpServletRequest req, HttpServletResponse resp) {
+    public static void before() {
         System.err.println("before HttpServletAdvice");
     }
 }

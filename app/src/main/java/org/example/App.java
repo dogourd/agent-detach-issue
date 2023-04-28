@@ -16,6 +16,7 @@ public class App {
 
     @RequestMapping
     public String hello() {
+        InstrumentedClass.instrumentedMethod();
         return "hello";
     }
 

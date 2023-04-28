@@ -1,19 +1,18 @@
 package org.example;
 
 
-import net.bytebuddy.dynamic.ClassFileLocator;
-import net.bytebuddy.dynamic.loading.ClassInjector;
-import net.bytebuddy.utility.StreamDrainer;
-
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.ConstantCallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -123,17 +122,58 @@ public class IndyBootstrap {
             // on applying the listed instructions in method documentation
             bootstrapClass = Class.forName(className, false, null);
         } catch (ClassNotFoundException e) {
-            byte[] classBytes = StreamDrainer.DEFAULT.drain(AgentMain.class.getClassLoader().getResourceAsStream(resourceName));
+            try (InputStream is = AgentMain.class.getClassLoader().getResourceAsStream(resourceName)) {
+                byte[] classBytes = drain(AgentMain.class.getClassLoader().getResourceAsStream(resourceName));
 //            byte[] classBytes = IOUtils.readToBytes(ElasticApmAgent.getAgentClassLoader().getResourceAsStream(resourceName));
-            if (classBytes == null || classBytes.length == 0) {
-                throw new IllegalStateException("Could not locate " + resourceName);
+                if (classBytes == null || classBytes.length == 0) {
+                    throw new IllegalStateException("Could not locate " + resourceName);
+                }
+                try {
+                    Class<?> unsafeType = Class.forName("sun.misc.Unsafe");
+                    Field theUnsafe = unsafeType.getDeclaredField("theUnsafe");
+                    theUnsafe.setAccessible(true);
+                    Object unsafe = theUnsafe.get(null);
+                    Method defineMethod = unsafeType.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class);
+                    defineMethod.invoke(unsafe, className, classBytes, 0, classBytes.length, null, null);
+                } catch (Throwable ex) {
+
+                }
+//                ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, classBytes));
+                bootstrapClass = Class.forName(className, false, null);
             }
-            ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, classBytes));
-            bootstrapClass = Class.forName(className, false, null);
         }
         return bootstrapClass;
     }
 
+    public static byte[] drain(InputStream inputStream) throws IOException {
+        int bufferSize = 4096;
+        List<byte[]> previousBytes = new ArrayList();
+        byte[] currentArray = new byte[bufferSize];
+        int currentIndex = 0;
+
+        int currentRead;
+        do {
+            currentRead = inputStream.read(currentArray, currentIndex, bufferSize - currentIndex);
+            currentIndex += Math.max(currentRead, 0);
+            if (currentIndex == bufferSize) {
+                previousBytes.add(currentArray);
+                currentArray = new byte[bufferSize];
+                currentIndex = 0;
+            }
+        } while(currentRead != -1);
+
+        byte[] result = new byte[previousBytes.size() * bufferSize + currentIndex];
+        int arrayIndex = 0;
+        Iterator var8 = previousBytes.iterator();
+
+        while(var8.hasNext()) {
+            byte[] previousByte = (byte[])var8.next();
+            System.arraycopy(previousByte, 0, result, arrayIndex++ * bufferSize, bufferSize);
+        }
+
+        System.arraycopy(currentArray, 0, result, arrayIndex * bufferSize, currentIndex);
+        return result;
+    }
 
     /**
      * A package-private method for unit-testing of the module overriding functionality
@@ -241,7 +281,6 @@ public class IndyBootstrap {
 
             ClassLoader instrumentationClassLoader = AgentMain.class.getClassLoader();
             ClassLoader targetClassLoader = lookup.lookupClass().getClassLoader();
-            ClassFileLocator classFileLocator;
             List<String> pluginClasses = new ArrayList<>();
             Map<String, List<String>> requiredModuleOpens = Collections.emptyMap();
 
