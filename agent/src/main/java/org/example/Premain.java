@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.security.ProtectionDomain;
 import java.security.SecureClassLoader;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -99,6 +100,12 @@ public class Premain {
                 pdcache.clear();
                 System.err.println("Clear ClassLoader's pdCache");
             }
+
+            ClassLoader appClassLoader = ClassLoader.getSystemClassLoader();
+            Field classesField = ClassLoader.class.getDeclaredField("classes");
+            classesField.setAccessible(true);
+            Vector classes = (Vector) classesField.get(appClassLoader);
+            classes.remove(agentClassLoader.getClass());
 
 
             // todo pdcache
