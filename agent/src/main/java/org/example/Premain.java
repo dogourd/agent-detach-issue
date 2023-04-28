@@ -5,17 +5,12 @@ import java.io.File;
 import java.io.InputStream;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.ProtectionDomain;
-import java.security.SecureClassLoader;
-import java.util.Map;
-import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -63,49 +58,54 @@ public class Premain {
             System.err.println("close agent class loader.");
             agentClassLoader.close();
 
-            Field field = ClassLoader.class.getDeclaredField("packages");
-            field.setAccessible(true);
-            Map packages = (Map) field.get(agentClassLoader);
-            if (packages != null) {
-                packages.clear();
-                System.err.println("Clear ClassLoader's pkg.");
-            }
+            Field field = Class.forName("java.lang.IndyBootstrapDispatcher", false, null)
+                    .getField("bootstrap");
+            field.set(null, null);
+            field = null;
 
-            Field modifersField = Field.class.getDeclaredField("modifiers");
-            modifersField.setAccessible(true);
-
-            field = ClassLoader.class.getDeclaredField("assertionLock");
-            field.setAccessible(true);
-            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-            field.set(agentClassLoader, null);
-            System.err.println("Clear ClassLoader's assertionLock");
-
-            field = ClassLoader.class.getDeclaredField("defaultDomain");
-            field.setAccessible(true);
-            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-            field.set(agentClassLoader, null);
-            System.err.println("Clear ClassLoader's defaultDomain");
-
-
-            field = SecureClassLoader.class.getDeclaredField("pdcache");
-            field.setAccessible(true);
-            Map pdcache = (Map) field.get(agentClassLoader);
-            if (pdcache != null) {
-                Field keyField = ProtectionDomain.class.getDeclaredField("key");
-                keyField.setAccessible(true);
-                for (Object pd : pdcache.values()) {
-                    System.err.println("Clear ProtectionDomain's Key");
-                    keyField.set(pd, null);
-                }
-                pdcache.clear();
-                System.err.println("Clear ClassLoader's pdCache");
-            }
-
-            ClassLoader appClassLoader = ClassLoader.getSystemClassLoader();
-            Field classesField = ClassLoader.class.getDeclaredField("classes");
-            classesField.setAccessible(true);
-            Vector classes = (Vector) classesField.get(appClassLoader);
-            classes.remove(agentClassLoader.getClass());
+//            Field field = ClassLoader.class.getDeclaredField("packages");
+//            field.setAccessible(true);
+//            Map packages = (Map) field.get(agentClassLoader);
+//            if (packages != null) {
+//                packages.clear();
+//                System.err.println("Clear ClassLoader's pkg.");
+//            }
+//
+//            Field modifersField = Field.class.getDeclaredField("modifiers");
+//            modifersField.setAccessible(true);
+//
+//            field = ClassLoader.class.getDeclaredField("assertionLock");
+//            field.setAccessible(true);
+//            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+//            field.set(agentClassLoader, null);
+//            System.err.println("Clear ClassLoader's assertionLock");
+//
+//            field = ClassLoader.class.getDeclaredField("defaultDomain");
+//            field.setAccessible(true);
+//            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+//            field.set(agentClassLoader, null);
+//            System.err.println("Clear ClassLoader's defaultDomain");
+//
+//
+//            field = SecureClassLoader.class.getDeclaredField("pdcache");
+//            field.setAccessible(true);
+//            Map pdcache = (Map) field.get(agentClassLoader);
+//            if (pdcache != null) {
+//                Field keyField = ProtectionDomain.class.getDeclaredField("key");
+//                keyField.setAccessible(true);
+//                for (Object pd : pdcache.values()) {
+//                    System.err.println("Clear ProtectionDomain's Key");
+//                    keyField.set(pd, null);
+//                }
+//                pdcache.clear();
+//                System.err.println("Clear ClassLoader's pdCache");
+//            }
+//
+//            ClassLoader appClassLoader = ClassLoader.getSystemClassLoader();
+//            Field classesField = ClassLoader.class.getDeclaredField("classes");
+//            classesField.setAccessible(true);
+//            Vector classes = (Vector) classesField.get(appClassLoader);
+//            classes.remove(agentClassLoader.getClass());
 
 
             // todo pdcache
@@ -130,50 +130,8 @@ public class Premain {
             System.err.println("release agent class.");
             agentClass = null;
             System.err.println("close agent class loader.");
+
             agentClassLoader.close();
-
-            Field field = ClassLoader.class.getDeclaredField("packages");
-            field.setAccessible(true);
-            Map packages = (Map) field.get(agentClassLoader);
-            if (packages != null) {
-                packages.clear();
-                System.err.println("Clear ClassLoader's pkg.");
-            }
-
-            Field modifersField = Field.class.getDeclaredField("modifiers");
-            modifersField.setAccessible(true);
-
-            field = ClassLoader.class.getDeclaredField("assertionLock");
-            field.setAccessible(true);
-            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-            field.set(agentClassLoader, null);
-            System.err.println("Clear ClassLoader's assertionLock");
-
-            field = ClassLoader.class.getDeclaredField("defaultDomain");
-            field.setAccessible(true);
-            modifersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-            field.set(agentClassLoader, null);
-            System.err.println("Clear ClassLoader's defaultDomain");
-
-
-            field = SecureClassLoader.class.getDeclaredField("pdcache");
-            field.setAccessible(true);
-            Map pdcache = (Map) field.get(agentClassLoader);
-            if (pdcache != null) {
-                Field keyField = ProtectionDomain.class.getDeclaredField("key");
-                keyField.setAccessible(true);
-                for (Object pd : pdcache.values()) {
-                    System.err.println("Clear ProtectionDomain's Key");
-                    keyField.set(pd, null);
-                }
-                pdcache.clear();
-                System.err.println("Clear ClassLoader's pdCache");
-            }
-
-
-            // todo pdcache
-            // todo ClassFilLocator $ ForClassLoader  BOOT_LOADER_PROXY
-            System.err.println("release agent class loader.");
             agentClassLoader = null;
 
             System.gc();

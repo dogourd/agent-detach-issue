@@ -11,16 +11,12 @@ import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
-import net.bytebuddy.utility.dispatcher.JavaDispatcher;
 import org.example.advices.AppInstrumentedClassAdvice;
 import org.example.advices.indy.AppInstrumentedClassIndyAdvice;
-import org.objectweb.asm.ClassWriter;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -49,27 +45,24 @@ public class AgentMain {
             IndyPluginClassLoaderFactory.clear();
             IndyBootstrap.destroy();
 
-            Field field = Class.forName("java.lang.IndyBootstrapDispatcher", false, null)
-                    .getField("bootstrap");
-            field.set(null, null);
-            field = null;
 
-            Class<JavaDispatcher> byteBuddyDispatcher = JavaDispatcher.class;
-            Field invokerField = byteBuddyDispatcher.getDeclaredField("INVOKER");
 
-            Field modifersField = Field.class.getDeclaredField("modifiers");
-            modifersField.setAccessible(true);
-            modifersField.setInt(invokerField, invokerField.getModifiers() & ~Modifier.FINAL);
-
-            invokerField.setAccessible(true);
-            invokerField.set(null, null);
-            System.err.println("Clear JavaDispatcher's INVOKER");
-
-            Field proxyField = ClassFileLocator.ForClassLoader.class.getDeclaredField("BOOT_LOADER_PROXY");
-            proxyField.setAccessible(true);
-            modifersField.setInt(proxyField, proxyField.getModifiers() & ~Modifier.FINAL);
-            proxyField.set(null, null);
-            System.err.println("Clear ForClassLoader's BOOT_LOADER_PROXY");
+//            Class<JavaDispatcher> byteBuddyDispatcher = JavaDispatcher.class;
+//            Field invokerField = byteBuddyDispatcher.getDeclaredField("INVOKER");
+//
+//            Field modifersField = Field.class.getDeclaredField("modifiers");
+//            modifersField.setAccessible(true);
+//            modifersField.setInt(invokerField, invokerField.getModifiers() & ~Modifier.FINAL);
+//
+//            invokerField.setAccessible(true);
+//            invokerField.set(null, null);
+//            System.err.println("Clear JavaDispatcher's INVOKER");
+//
+//            Field proxyField = ClassFileLocator.ForClassLoader.class.getDeclaredField("BOOT_LOADER_PROXY");
+//            proxyField.setAccessible(true);
+//            modifersField.setInt(proxyField, proxyField.getModifiers() & ~Modifier.FINAL);
+//            proxyField.set(null, null);
+//            System.err.println("Clear ForClassLoader's BOOT_LOADER_PROXY");
         }
     }
 
@@ -121,7 +114,7 @@ public class AgentMain {
 //                            .and(takesArgument(1, named("javax.servlet.http.HttpServletResponse")))
 //                    )
                     .on(named("instrumentedMethod"))
-                    .writerFlags(ClassWriter.COMPUTE_FRAMES)
+//                    .writerFlags(ClassWriter.COMPUTE_FRAMES)
                     ;
 
             builder = builder.visit(visitor);

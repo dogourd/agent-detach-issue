@@ -128,15 +128,34 @@ public class IndyBootstrap {
                 if (classBytes == null || classBytes.length == 0) {
                     throw new IllegalStateException("Could not locate " + resourceName);
                 }
-                try {
-                    Class<?> unsafeType = Class.forName("sun.misc.Unsafe");
-                    Field theUnsafe = unsafeType.getDeclaredField("theUnsafe");
-                    theUnsafe.setAccessible(true);
-                    Object unsafe = theUnsafe.get(null);
-                    Method defineMethod = unsafeType.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class);
-                    defineMethod.invoke(unsafe, className, classBytes, 0, classBytes.length, null, null);
-                } catch (Throwable ex) {
-
+                String v = System.getProperty("java.version");
+                int idx = v.indexOf('.');
+                if (idx != -1) {
+                    v = v.substring(0, idx);
+                }
+                double version = Double.parseDouble(v);
+                if (version >= 11) {
+                    try {
+                        Class<?> unsafeType = Class.forName("jdk.internal.misc.Unsafe");
+                        Field theUnsafe = unsafeType.getDeclaredField("theUnsafe");
+                        theUnsafe.setAccessible(true);
+                        Object unsafe = theUnsafe.get(null);
+                        Method defineMethod = unsafeType.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class);
+                        defineMethod.invoke(unsafe, className, classBytes, 0, classBytes.length, null, null);
+                    } catch (Throwable ex) {
+                        ex.printStackTrace();
+                    }
+                } else {
+                    try {
+                        Class<?> unsafeType = Class.forName("sun.misc.Unsafe");
+                        Field theUnsafe = unsafeType.getDeclaredField("theUnsafe");
+                        theUnsafe.setAccessible(true);
+                        Object unsafe = theUnsafe.get(null);
+                        Method defineMethod = unsafeType.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class, ClassLoader.class, ProtectionDomain.class);
+                        defineMethod.invoke(unsafe, className, classBytes, 0, classBytes.length, null, null);
+                    } catch (Throwable ex) {
+                        ex.printStackTrace();
+                    }
                 }
 //                ClassInjector.UsingUnsafe.ofBootLoader().injectRaw(Collections.singletonMap(className, classBytes));
                 bootstrapClass = Class.forName(className, false, null);
